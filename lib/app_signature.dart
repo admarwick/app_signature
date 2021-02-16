@@ -7,7 +7,7 @@ class AppSignature {
       const MethodChannel('app_signature');
 
   static Future<String> getAppSignature() async {
-    final String smsCode = await _channel.invokeMethod('getAppSignature');
-    return smsCode;
+    final String sig = await _channel.invokeMethod('getAppSignature');
+    return sig;
   }
 }

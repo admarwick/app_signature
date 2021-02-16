@@ -1,24 +1,18 @@
 package pl.skipcode.app_signature
 
-import android.annotation.TargetApi
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.PackageManager
 import android.os.Build
-import android.util.Base64
 import android.util.Log
-import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
-import java.security.NoSuchAlgorithmException
 import java.util.*
+
 
 class AppSignatureHelper(context: Context) : ContextWrapper(context) {
 
     companion object {
         val TAG = AppSignatureHelper::class.java.simpleName
-        private val HASH_TYPE = "SHA-256"
-        val NUM_HASHED_BYTES = 9
-        val NUM_BASE64_CHAR = 11
     }
 
     fun getAppSignatures(): ArrayList<String> {
@@ -26,42 +20,72 @@ class AppSignatureHelper(context: Context) : ContextWrapper(context) {
 
         return try {
             // Get all package signatures for the current package
-            val packageName = packageName
-            val packageManager = packageManager
-            val signatures = packageManager.getPackageInfo(packageName,
-                    PackageManager.GET_SIGNATURES).signatures
-
-            // For each signature create a compatible hash
-            signatures
-                    .mapNotNull { hash(packageName, it.toCharsString()) }
-                    .mapTo(appCodes) { it }
-            return appCodes
+            return getApplicationSignature(this.packageName) as ArrayList<String>
         } catch (e: PackageManager.NameNotFoundException) {
-            Log.e(TAG, "Unable to find package to obtain hash.", e)
+            Log.e(TAG, "Unable to find package to obtain signature.", e)
+            ArrayList()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Error getting app signature", e)
             ArrayList()
         }
     }
 
-    @TargetApi(Build.VERSION_CODES.KITKAT)
-    private fun hash(packageName: String, signature: String): String? {
-        val appInfo = "$packageName $signature"
-        return try {
-            val messageDigest = MessageDigest.getInstance(HASH_TYPE)
-            messageDigest.update(appInfo.toByteArray(StandardCharsets.UTF_8))
-            var hashSignature = messageDigest.digest()
 
-            // truncated into NUM_HASHED_BYTES
-            hashSignature = Arrays.copyOfRange(hashSignature, 0, NUM_HASHED_BYTES)
-            // encode into Base64
-            var base64Hash = Base64.encodeToString(hashSignature, Base64.NO_PADDING or Base64.NO_WRAP)
-            base64Hash = base64Hash.substring(0, NUM_BASE64_CHAR)
-
-//            Log.d(TAG, "pkg: $packageName -- hash: $base64Hash")
-            base64Hash
-        } catch (e: NoSuchAlgorithmException) {
-            Log.e(TAG, "hash:NoSuchAlgorithm", e)
-            null
+    /// Formats a signature in the same way as keystore does, ie with colon delimiters
+    /// between pairs of hex digits
+    fun byte2HexFormatted(arr: ByteArray): String {
+        val str = StringBuilder(arr.size * 2)
+        for (i in arr.indices) {
+            var h = Integer.toHexString(arr[i].toInt())
+            val l = h.length
+            if (l == 1) h = "0$h"
+            if (l > 2) h = h.substring(l - 2, l)
+            str.append(h.toUpperCase())
+            if (i < arr.size - 1) str.append(':')
         }
+        return str.toString()
     }
+
+    /// Based on code posted by Mahti-Malv on Stack Overflow.
+    /// See https://stackoverflow.com/a/53407183
+    fun getApplicationSignature(packageName: String): List<String> {
+        val signatureList: List<String>
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                // New signature
+                val sig = this.packageManager
+                        .getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+                        .signingInfo
+                signatureList = if (sig.hasMultipleSigners()) {
+                    // Send all with apkContentsSigners
+                    sig.apkContentsSigners.map {
+                        val digest = MessageDigest.getInstance("SHA")
+                        digest.update(it.toByteArray())
+                        byte2HexFormatted(digest.digest())
+                    }
+                } else {
+                    // Send one with signingCertificateHistory
+                    sig.signingCertificateHistory.map {
+                        val digest = MessageDigest.getInstance("SHA")
+                        digest.update(it.toByteArray())
+                        byte2HexFormatted(digest.digest())
+                    }
+                }
+            } else {
+                val sig = this.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES).signatures
+                signatureList = sig.map {
+                    val digest = MessageDigest.getInstance("SHA")
+                    digest.update(it.toByteArray())
+                    byte2HexFormatted(digest.digest())
+                }
+            }
+
+            return signatureList
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in getApplicationSignature", e)
+        }
+        return emptyList()
+    }
+
 
 }

@@ -1,14 +1,22 @@
 # app_signature
 
-A new Flutter plugin for help with get AppSignature
+This plugin gets the app signature on Android.
 
-## Getting Started
+This fork of the original plugin returns the SHA-1 app signature, formatted in the
+same way as it is by keystore or by running the gradle task <signingReport>.
 
-This project is a starting point for a Flutter
-[plug-in package](https://flutter.dev/developing-packages/),
-a specialized package that includes platform-specific implementation code for
-Android and/or iOS.
+On IOS, where the app signature is not needed AFAIK, the plugin runs but the
+signature returned is just the version
+of IOS on the device.
 
-For help getting started with Flutter, view our 
-[online documentation](https://flutter.dev/docs), which offers tutorials, 
-samples, guidance on mobile development, and a full API reference.
+To use this plugin, add it as a dependency to your pubspec.yaml file:
+
+Then, import it in your Dart code.
+
+Finally call the plugin to obtain the SHA-1 app signature.
+
+Note: if you need the signature in order to use a restricted Google REST API by adding
+the signature to the headers of your https query, be sure to remove the colons from the
+signature string returned by this plugin.
+
+
