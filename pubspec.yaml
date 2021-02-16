@@ -1,6 +1,6 @@
 name: app_signature
-description: A new Flutter plugin for help with get AppSignature
-version: 0.0.1
+description: A fork that returns the SHA-1 fingerprint of the app
+version: 0.1.0
 author:
 homepage:
 

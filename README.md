@@ -3,11 +3,10 @@
 This plugin gets the app signature on Android.
 
 This fork of the original plugin returns the SHA-1 app signature, formatted in the
-same way as it is by keystore or by running the gradle task <signingReport>.
+same way as it is in a keystore or as it is obtained by running the gradle task <signingReport>.
 
 On IOS, where the app signature is not needed AFAIK, the plugin runs but the
-signature returned is just the version
-of IOS on the device.
+signature returned is just the version of IOS on the device.
 
 To use this plugin, add it as a dependency to your pubspec.yaml file:
 
